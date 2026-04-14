@@ -26,7 +26,11 @@ export class QdrantManager {
   private client: QdrantClient;
 
   constructor(url: string = "http://localhost:6333", apiKey?: string) {
-    this.client = new QdrantClient({ url, apiKey });
+    const parsedUrl = new URL(url);
+    const isHttps = parsedUrl.protocol === "https:";
+    const host = parsedUrl.hostname;
+    const port = parsedUrl.port ? Number(parsedUrl.port) : (isHttps ? 443 : 6333);
+    this.client = new QdrantClient({ host, port, https: isHttps, apiKey, checkCompatibility: false });
   }
 
   /**
