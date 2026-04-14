@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 
+import { config } from "dotenv";
+config(); // Load .env file
+
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -95,17 +98,23 @@ if (EMBEDDING_PROVIDER !== "ollama") {
 async function checkOllamaAvailability() {
   if (EMBEDDING_PROVIDER === "ollama") {
     const baseUrl = process.env.EMBEDDING_BASE_URL || "http://localhost:11434";
+    const apiKey = process.env.EMBEDDING_API_KEY;
     const isLocalhost =
       baseUrl.includes("localhost") || baseUrl.includes("127.0.0.1");
 
+    const headers: Record<string, string> = {};
+    if (apiKey) {
+      headers["X-Api-Key"] = apiKey;
+    }
+
     try {
-      const response = await fetch(`${baseUrl}/api/version`);
+      const response = await fetch(`${baseUrl}/api/version`, { headers });
       if (!response.ok) {
         throw new Error(`Ollama returned status ${response.status}`);
       }
 
       // Check if the required embedding model exists
-      const tagsResponse = await fetch(`${baseUrl}/api/tags`);
+      const tagsResponse = await fetch(`${baseUrl}/api/tags`, { headers });
       const { models } = await tagsResponse.json();
       const modelName = process.env.EMBEDDING_MODEL || "nomic-embed-text";
       const modelExists = models.some(
