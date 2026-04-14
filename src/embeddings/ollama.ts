@@ -19,15 +19,18 @@ export class OllamaEmbeddings implements EmbeddingProvider {
   private retryAttempts: number;
   private retryDelayMs: number;
   private baseUrl: string;
+  private apiKey?: string;
 
   constructor(
     model: string = "nomic-embed-text",
     dimensions?: number,
     rateLimitConfig?: RateLimitConfig,
     baseUrl: string = "http://localhost:11434",
+    apiKey?: string,
   ) {
     this.model = model;
     this.baseUrl = baseUrl;
+    this.apiKey = apiKey;
 
     // Default dimensions for different models
     const defaultDimensions: Record<string, number> = {
@@ -103,11 +106,18 @@ export class OllamaEmbeddings implements EmbeddingProvider {
 
   private async callApi(text: string): Promise<OllamaEmbedResponse> {
     try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      
+      // Add X-Api-Key header if API key is provided
+      if (this.apiKey) {
+        headers["X-Api-Key"] = this.apiKey;
+      }
+
       const response = await fetch(`${this.baseUrl}/api/embeddings`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({
           model: this.model,
           prompt: text,

@@ -539,6 +539,7 @@ See [examples/](examples/) directory for detailed guides:
 | ----------------------------------- | ------------------------ | ----------------- |
 | `EMBEDDING_MODEL`                   | Model name               | Provider-specific |
 | `EMBEDDING_BASE_URL`                | Custom API URL           | Provider-specific |
+| `EMBEDDING_API_KEY`                 | API key (for authenticated Ollama instances) | - |
 | `EMBEDDING_MAX_REQUESTS_PER_MINUTE` | Rate limit               | Provider-specific |
 | `EMBEDDING_RETRY_ATTEMPTS`          | Retry count              | 3                 |
 | `EMBEDDING_RETRY_DELAY`             | Initial retry delay (ms) | 1000              |
@@ -577,7 +578,7 @@ See [examples/](examples/) directory for detailed guides:
 
 | Provider   | Models                                                          | Dimensions     | Rate Limit | Notes                |
 | ---------- | --------------------------------------------------------------- | -------------- | ---------- | -------------------- |
-| **Ollama** | `nomic-embed-text` (default), `mxbai-embed-large`, `all-minilm` | 768, 1024, 384 | None       | Local, no API key    |
+| **Ollama** | `nomic-embed-text` (default), `mxbai-embed-large`, `all-minilm` | 768, 1024, 384 | None       | Local, API key optional (EMBEDDING_API_KEY) |
 | **OpenAI** | `text-embedding-3-small` (default), `text-embedding-3-large`    | 1536, 3072     | 3500/min   | Cloud API            |
 | **Cohere** | `embed-english-v3.0` (default), `embed-multilingual-v3.0`       | 1024           | 100/min    | Multilingual support |
 | **Voyage** | `voyage-2` (default), `voyage-large-2`, `voyage-code-2`         | 1024, 1536     | 300/min    | Code-specialized     |
@@ -595,6 +596,7 @@ See [examples/](examples/) directory for detailed guides:
 | **Collection missing**         | Create collection first before adding documents                                           |
 | **Ollama not running**         | Verify with `curl http://localhost:11434`, start with `podman compose up -d`              |
 | **Model missing**              | `podman exec ollama ollama pull nomic-embed-text` or `docker exec ollama ollama pull ...` |
+| **Ollama authentication failed** | Set `EMBEDDING_API_KEY` if your Ollama instance requires authentication               |
 | **Rate limit errors**          | Adjust `EMBEDDING_MAX_REQUESTS_PER_MINUTE` to match your provider tier                    |
 | **API key errors**             | Verify correct API key in environment configuration                                       |
 | **Qdrant unauthorized**        | Set `QDRANT_API_KEY` environment variable for secured instances                           |

@@ -59,6 +59,7 @@ export class EmbeddingProviderFactory {
           dimensions,
           rateLimitConfig,
           baseUrl || "http://localhost:11434",
+          apiKey,
         );
 
       default:
@@ -86,7 +87,8 @@ export class EmbeddingProviderFactory {
         apiKey = process.env.VOYAGE_API_KEY;
         break;
       case "ollama":
-        // No API key needed for local Ollama
+        // API key is optional for Ollama (used when behind a proxy or authentication layer)
+        apiKey = process.env.EMBEDDING_API_KEY;
         break;
     }
 
