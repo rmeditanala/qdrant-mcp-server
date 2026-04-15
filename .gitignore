@@ -11,6 +11,8 @@ coverage/
 # Environment variables
 .env
 .env.local
+.env.deploy
+.env.*.local
 
 # IDE
 .vscode/

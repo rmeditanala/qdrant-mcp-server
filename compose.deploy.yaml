@@ -1,0 +1,35 @@
+# Production compose for GCP deployment
+# Uses existing Qdrant and Ollama containers
+
+services:
+  qdrant-mcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: qdrant-mcp-server
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env.deploy
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - mcp-network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+        reservations:
+          memory: 256M
+
+networks:
+  mcp-network:
+    driver: bridge
