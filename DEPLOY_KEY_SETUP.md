@@ -74,17 +74,14 @@ cd qdrant-mcp-server
 
 ## Step 5: Deploy
 
+> **Note**: You **don't need** to run `npm install` or `npm run build` on the VM!
+> The Dockerfile handles all installation and building inside the container.
+
 ```bash
-# Install dependencies
-npm install
-
-# Build
-npm run build
-
-# Configure environment
+# Configure environment variables
 nano .env.deploy  # Edit with actual values
 
-# Deploy with Docker
+# Build and deploy with Docker (handles npm install + build automatically)
 docker compose -f compose.deploy.yaml build
 docker compose -f compose.deploy.yaml up -d
 
@@ -99,6 +96,8 @@ curl http://localhost:3000/health
 
 When you make changes and want to update:
 
+> **Note**: Docker rebuilds everything automatically. No need for manual `npm install` or `npm run build`.
+
 ```bash
 # SSH into VM
 cd ~/qdrant-mcp-server
@@ -106,7 +105,7 @@ cd ~/qdrant-mcp-server
 # Pull latest changes
 git pull origin main
 
-# Rebuild and restart
+# Rebuild and restart (Docker handles npm install + build)
 docker compose -f compose.deploy.yaml build --no-cache
 docker compose -f compose.deploy.yaml down
 docker compose -f compose.deploy.yaml up -d
