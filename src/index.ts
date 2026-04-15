@@ -435,7 +435,7 @@ async function startHttpServer() {
     // Create transport with enableJsonResponse
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: undefined,
-      enableJsonResponse: true,
+      enableJsonResponse: false,
     });
 
     // Track cleanup state to prevent double cleanup
