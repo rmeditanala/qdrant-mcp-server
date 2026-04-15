@@ -457,8 +457,8 @@ async function startHttpServer() {
 
     // Create transport with session support
     const transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: () => randomUUID(),
-      enableJsonResponse: false,
+      sessionIdGenerator: () => undefined,
+      enableJsonResponse: true,
     });
 
     // Track cleanup state to prevent double cleanup
