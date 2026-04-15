@@ -6,6 +6,7 @@ config(); // Load .env file
 import { existsSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { randomUUID } from "node:crypto";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
@@ -428,13 +429,35 @@ async function startHttpServer() {
     });
   });
 
+  // Store active sessions for SSE streaming
+  const sessions = new Map<
+    string,
+    { transport: StreamableHTTPServerTransport; server: McpServer }
+  >();
+
+  // GET handler for SSE streams (required for Streamable HTTP transport)
+  app.get("/mcp", async (req, res) => {
+    const sessionId = req.headers["mcp-session-id"] as string | undefined;
+    if (!sessionId || !sessions.has(sessionId)) {
+      res.status(400).json({
+        jsonrpc: "2.0",
+        error: { code: -32000, message: "Invalid or missing session" },
+        id: null,
+      });
+      return;
+    }
+
+    const session = sessions.get(sessionId)!;
+    await session.transport.handleRequest(req, res);
+  });
+
   app.post("/mcp", rateLimitMiddleware, async (req, res) => {
     // Create a new server for each request
     const requestServer = createAndConfigureServer();
 
-    // Create transport with enableJsonResponse
+    // Create transport with session support
     const transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: undefined,
+      sessionIdGenerator: () => randomUUID(),
       enableJsonResponse: false,
     });
 
@@ -458,6 +481,16 @@ async function startHttpServer() {
     try {
       // Connect server to transport
       await requestServer.connect(transport);
+
+      // Store session for SSE streaming
+      if (transport.sessionId) {
+        sessions.set(transport.sessionId, { transport, server: requestServer });
+
+        // Clean up session when transport closes
+        transport.onclose = () => {
+          sessions.delete(transport.sessionId!);
+        };
+      }
 
       // Handle the request - this triggers message processing
       // The response will be sent asynchronously when the server calls transport.send()
