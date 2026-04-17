@@ -458,6 +458,7 @@ async function startHttpServer() {
     // Create transport with session support
     const transport = new StreamableHTTPServerTransport({
       sessionIdGenerator: () => undefined,
+      sessionIdGenerator: () => randomUUID(),
       enableJsonResponse: true,
     });
 
