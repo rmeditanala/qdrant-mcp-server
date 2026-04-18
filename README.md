@@ -272,6 +272,7 @@ Intelligently index and search your codebase using semantic code search. Perfect
 - **Semantic Search**: Natural language queries to find relevant code
 - **Metadata Filtering**: Filter by file type, path patterns, or language
 - **Local-First**: All processing happens locally - your code never leaves your machine
+- **Cross-Machine Consistency**: Collections named after indexed directory (e.g., `code_myapp`) - team members can search using same directory name regardless of absolute path
 
 ### Quick Start
 
@@ -434,6 +435,7 @@ Create a `.contextignore` file in your project root to specify additional patter
 3. **Meaningful Queries**: Use natural language that describes what you're looking for (e.g., "database connection pooling" instead of "db")
 4. **Check Status First**: Use `get_index_status` to verify a codebase is indexed before searching
 5. **Local Embedding**: Use Ollama (default) to keep everything local and private
+6. **Team Workflow**: One developer indexes the codebase (e.g., `/path/to/myapp`), others can search from any machine using a path ending with the same directory name (e.g., `/different/path/myapp`)
 
 ### Performance
 
