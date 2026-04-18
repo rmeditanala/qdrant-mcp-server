@@ -1159,66 +1159,6 @@ function helper(param: string): boolean {
       expect(status1.collectionName).toBe(status2.collectionName);
     });
 
-    it("should use directory name for collection naming", async () => {
-      await createTestFile(codebaseDir, "test.ts", "const x = 1;");
-
-      await indexer.indexCodebase(codebaseDir);
-      const status = await indexer.getIndexStatus(codebaseDir);
-
-      // Collection name should be based on directory name "codebase"
-      expect(status.collectionName).toBe("code_codebase");
-      expect(status.collectionName).not.toMatch(/^code_[a-f0-9]{8}$/); // Should NOT be a hash
-    });
-
-    it("should produce same collection name for different paths with same directory name", async () => {
-      // Create a parent temp directory
-      const parentTempDir = join(tmpdir(), `qdrant-mcp-test-${Date.now()}`);
-      await fs.mkdir(parentTempDir, { recursive: true });
-
-      // Create two subdirectories with the same name "myapp"
-      const tempDir1 = join(parentTempDir, "path1", "myapp");
-      const tempDir2 = join(parentTempDir, "path2", "myapp");
-
-      await fs.mkdir(tempDir1, { recursive: true });
-      await fs.mkdir(tempDir2, { recursive: true });
-
-      await createTestFile(tempDir1, "test.ts", "const x = 1;");
-      await createTestFile(tempDir2, "test.ts", "const x = 1;");
-
-      await indexer.indexCodebase(tempDir1);
-      const status1 = await indexer.getIndexStatus(tempDir1);
-
-      // Clear and index the second path
-      await indexer.clearIndex(tempDir1);
-      await indexer.indexCodebase(tempDir2);
-      const status2 = await indexer.getIndexStatus(tempDir2);
-
-      // Both should have the same collection name based on "myapp"
-      expect(status1.collectionName).toBe("code_myapp");
-      expect(status2.collectionName).toBe("code_myapp");
-      expect(status1.collectionName).toBe(status2.collectionName);
-
-      // Cleanup
-      await fs.rm(parentTempDir, { recursive: true, force: true });
-    });
-
-    it("should sanitize directory names with special characters", async () => {
-      const parentTempDir = join(tmpdir(), `qdrant-mcp-test-${Date.now()}`);
-      await fs.mkdir(parentTempDir, { recursive: true });
-
-      const specialDir = join(parentTempDir, "my-app_v2.0");
-      await fs.mkdir(specialDir, { recursive: true });
-      await createTestFile(specialDir, "test.ts", "const x = 1;");
-
-      await indexer.indexCodebase(specialDir);
-      const status = await indexer.getIndexStatus(specialDir);
-
-      // Should sanitize: "my-app_v2.0" -> "my-app-v2-0"
-      expect(status.collectionName).toBe("code_my-app-v2-0");
-
-      await fs.rm(parentTempDir, { recursive: true, force: true });
-    });
-
     it("should handle concurrent operations gracefully", async () => {
       await createTestFile(codebaseDir, "test.ts", "const x = 1;");
 

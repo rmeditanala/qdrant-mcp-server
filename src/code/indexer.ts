@@ -2,13 +2,16 @@
  * CodeIndexer - Main orchestrator for code vectorization
  */
 
+import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
 import { promises as fs } from "node:fs";
-import { extname, join, relative, resolve, basename } from "node:path";
+import { extname, join, relative, resolve } from "node:path";
+import { promisify } from "node:util";
 import picomatch from "picomatch";
 import logger from "../logger.js";
 import type { EmbeddingProvider } from "../embeddings/base.js";
 import { BM25SparseVectorGenerator } from "../embeddings/sparse.js";
+import { normalizeRemoteUrl } from "../git/extractor.js";
 import type { QdrantManager } from "../qdrant/client.js";
 import { TreeSitterChunker } from "./chunker/tree-sitter-chunker.js";
 import { MetadataExtractor } from "./metadata.js";
@@ -25,6 +28,8 @@ import type {
   ProgressCallback,
   SearchOptions,
 } from "./types.js";
+
+const execFileAsync = promisify(execFile);
 
 /** Reserved ID for storing indexing metadata in the collection */
 const INDEXING_METADATA_ID = "__indexing_metadata__";
@@ -812,31 +817,42 @@ export class CodeIndexer {
   private async getCollectionName(path: string): Promise<string> {
     const absolutePath = resolve(path);
 
-    // Extract directory name from the path
-    const directoryName = basename(absolutePath);
+    // Try git remote URL for consistent naming
+    // Check if THIS directory is the git root (not just inside a git repo)
+    try {
+      // Clear git environment variables that may be set during pre-commit hooks
+      // These variables cause git commands to use the wrong repository
+      const cleanEnv = { ...process.env };
+      delete cleanEnv.GIT_DIR;
+      delete cleanEnv.GIT_WORK_TREE;
+      delete cleanEnv.GIT_INDEX_FILE;
 
-    // Sanitize directory name for use as Qdrant collection name
-    // Qdrant collection names must be valid identifiers
-    let sanitizedName = directoryName
-      .toLowerCase()
-      .replace(/[^a-z0-9]/g, "-") // Replace non-alphanumeric chars with hyphens
-      .replace(/-+/g, "-") // Collapse multiple hyphens into single hyphen
-      .replace(/^-|-$/g, ""); // Remove leading/trailing hyphens
+      const { stdout: gitRootResult } = await execFileAsync(
+        "git",
+        ["rev-parse", "--show-toplevel"],
+        { cwd: absolutePath, env: cleanEnv },
+      );
+      const gitRoot = gitRootResult.trim();
 
-    // Handle empty or very short names
-    if (!sanitizedName) {
-      // Fallback to hash if sanitization results in empty string
-      const hash = createHash("md5").update(absolutePath).digest("hex");
-      return `code_${hash.substring(0, 8)}`;
+      // Only use git remote if this path IS the git root
+      if (gitRoot === absolutePath) {
+        const { stdout } = await execFileAsync(
+          "git",
+          ["remote", "get-url", "origin"],
+          { cwd: absolutePath, env: cleanEnv },
+        );
+        const normalized = normalizeRemoteUrl(stdout.trim());
+        if (normalized) {
+          const hash = createHash("md5").update(normalized).digest("hex");
+          return `code_${hash.substring(0, 8)}`;
+        }
+      }
+    } catch {
+      // Not a git repo or no remote
     }
 
-    // Truncate if too long (Qdrant max is 255 chars, leave room for prefix)
-    const maxLength = 250; // 255 - "code_".length
-    if (sanitizedName.length > maxLength) {
-      const hash = createHash("md5").update(sanitizedName).digest("hex");
-      sanitizedName = `${sanitizedName.substring(0, maxLength - 9)}-${hash.substring(0, 8)}`;
-    }
-
-    return `code_${sanitizedName}`;
+    // Fallback: full absolute path (consistent with original behavior)
+    const hash = createHash("md5").update(absolutePath).digest("hex");
+    return `code_${hash.substring(0, 8)}`;
   }
 }
