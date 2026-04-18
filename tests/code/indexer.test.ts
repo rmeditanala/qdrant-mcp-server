@@ -1048,15 +1048,12 @@ function helper(param: string): boolean {
   });
 
   describe("path validation", () => {
-    it("should handle non-existent paths gracefully", async () => {
-      // Create a path that doesn't exist yet
+    it("should return failed status for non-existent paths", async () => {
       const nonExistentDir = join(codebaseDir, "non-existent-dir");
 
-      // Should not throw error, validatePath falls back to absolute path
-      // and scanner finds 0 files
       const stats = await indexer.indexCodebase(nonExistentDir);
-      expect(stats.filesScanned).toBe(0);
-      expect(stats.status).toBe("completed");
+      expect(stats.status).toBe("failed");
+      expect(stats.errors?.some((e) => e.includes("File discovery failed"))).toBe(true);
     });
 
     it("should resolve real paths for existing directories", async () => {
