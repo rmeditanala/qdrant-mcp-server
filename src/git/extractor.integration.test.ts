@@ -148,14 +148,13 @@ describe("GitExtractor Integration Tests", () => {
           maxCommits: 20,
         });
 
-        // Should have fewer commits than the full list
+        // Should have fewer commits (the 4 before the since point)
         expect(recentCommits.length).toBeLessThan(allCommits.length);
-        // sinceHash itself should not appear in the results
-        expect(recentCommits.every((c) => c.hash !== sinceHash)).toBe(true);
-        // All returned commits should be present in the full commit list
-        const allHashes = new Set(allCommits.map((c) => c.hash));
-        for (const commit of recentCommits) {
-          expect(allHashes.has(commit.hash)).toBe(true);
+        expect(recentCommits.length).toBe(4);
+
+        // Verify the commits are the expected ones
+        for (let i = 0; i < recentCommits.length; i++) {
+          expect(recentCommits[i].hash).toBe(allCommits[i].hash);
         }
       }
     });
@@ -215,13 +214,7 @@ describe("GitExtractor Integration Tests", () => {
         const sinceHash = commits[4].hash;
         const count = await extractor.getCommitCount(sinceHash);
 
-        // Verify consistency: count should match what getCommits returns
-        const recentCommits = await extractor.getCommits({
-          sinceCommit: sinceHash,
-          maxCommits: 100,
-        });
-        expect(count).toBe(recentCommits.length);
-        expect(count).toBeLessThan(commits.length);
+        expect(count).toBe(4); // 4 commits between sinceHash and HEAD
       }
     });
   });

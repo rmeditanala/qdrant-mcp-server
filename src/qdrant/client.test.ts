@@ -57,11 +57,8 @@ describe("QdrantManager", () => {
       new QdrantManager("http://localhost:6333", "test-api-key");
 
       expect(QdrantClient).toHaveBeenCalledWith({
-        host: "localhost",
-        port: 6333,
-        https: false,
+        url: "http://localhost:6333",
         apiKey: "test-api-key",
-        checkCompatibility: false,
       });
     });
 
@@ -69,11 +66,8 @@ describe("QdrantManager", () => {
       new QdrantManager("http://localhost:6333");
 
       expect(QdrantClient).toHaveBeenCalledWith({
-        host: "localhost",
-        port: 6333,
-        https: false,
+        url: "http://localhost:6333",
         apiKey: undefined,
-        checkCompatibility: false,
       });
     });
   });
