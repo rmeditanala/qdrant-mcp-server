@@ -263,6 +263,8 @@ Templates use `{{variable}}` placeholders:
 
 Intelligently index and search your codebase using semantic code search. Perfect for AI-assisted development, code exploration, and understanding large codebases.
 
+> **Breaking change**: Collection names now use the directory name (e.g., `code_my-app`) instead of a git-remote-URL hash. Existing indexed codebases need to be re-indexed with `forceReindex: true`.
+
 ### Features
 
 - **AST-Aware Chunking**: Intelligent code splitting at function/class boundaries using tree-sitter
@@ -272,7 +274,7 @@ Intelligently index and search your codebase using semantic code search. Perfect
 - **Semantic Search**: Natural language queries to find relevant code
 - **Metadata Filtering**: Filter by file type, path patterns, or language
 - **Local-First**: All processing happens locally - your code never leaves your machine
-- **Cross-Machine Consistency**: Collections named after indexed directory (e.g., `code_myapp`) - team members can search using same directory name regardless of absolute path
+- **Predictable Collection Names**: Collections named after the indexed directory (e.g., `code_my-app` for `/path/to/my-app`) — human-readable and consistent across machines regardless of absolute path
 
 ### Quick Start
 
@@ -391,7 +393,7 @@ get_index_status({
 // {
 //   status: "indexed",      // "not_indexed" | "indexing" | "indexed"
 //   isIndexed: true,        // deprecated: use status instead
-//   collectionName: "code_a3f8d2e1",
+//   collectionName: "code_my-app",
 //   chunksCount: 1823,
 //   filesCount: 247,
 //   lastUpdated: "2025-01-30T10:15:00Z",
@@ -435,7 +437,7 @@ Create a `.contextignore` file in your project root to specify additional patter
 3. **Meaningful Queries**: Use natural language that describes what you're looking for (e.g., "database connection pooling" instead of "db")
 4. **Check Status First**: Use `get_index_status` to verify a codebase is indexed before searching
 5. **Local Embedding**: Use Ollama (default) to keep everything local and private
-6. **Team Workflow**: One developer indexes the codebase (e.g., `/path/to/myapp`), others can search from any machine using a path ending with the same directory name (e.g., `/different/path/myapp`)
+6. **Team Workflow**: One developer indexes the codebase (e.g., `/path/to/my-app` → collection `code_my-app`), others can search from any machine using a path ending with the same directory name (e.g., `/different/path/my-app`)
 
 ### Performance
 
@@ -605,10 +607,28 @@ See [examples/](examples/) directory for detailed guides:
 | **Filter errors**              | Ensure Qdrant filter format, check field names match metadata                             |
 | **Codebase not indexed**       | Run `index_codebase` before `search_code`                                                 |
 | **Slow indexing**              | Use Ollama (local) for faster indexing, or increase `CODE_BATCH_SIZE`                     |
-| **Files not found**            | Check `.gitignore` and `.contextignore` patterns                                          |
+| **Files not found**            | Check `.gitignore` and `.contextignore` patterns; symlinks are now followed automatically |
+| **Cannot access directory**    | Path does not exist or is not readable; verify the path and permissions                   |
 | **Search returns no results**  | Try broader queries, check if codebase is indexed with `get_index_status`                 |
 | **Out of memory during index** | Reduce `CODE_CHUNK_SIZE` or `CODE_BATCH_SIZE`                                             |
 | **Node 24 tree-sitter error**  | Run `CXXFLAGS='-std=c++20' npm install` - Node 24 requires C++20 for native modules       |
+
+## Deployment
+
+For production deployment (remote server with Docker), see **[DEPLOY.md](DEPLOY.md)** for a full guide covering:
+
+- Docker Compose setup (`compose.deploy.yaml`)
+- Environment configuration (`.env.deploy`)
+- Nginx reverse proxy with HTTPS
+- SSH deploy key setup for CI/CD (see [DEPLOY_KEY_SETUP.md](DEPLOY_KEY_SETUP.md))
+
+**Quick rebuild** (clean Docker redeploy):
+
+```bash
+./scripts/rebuild.sh
+```
+
+This pulls latest changes, stops containers, prunes Docker, rebuilds without cache, and restarts.
 
 ## Development
 
