@@ -12,7 +12,7 @@ import { BM25SparseVectorGenerator } from "../embeddings/sparse.js";
 import type { QdrantManager } from "../qdrant/client.js";
 import { TreeSitterChunker } from "./chunker/tree-sitter-chunker.js";
 import { MetadataExtractor } from "./metadata.js";
-import { FileScanner, ScanError } from "./scanner.js";
+import { FileScanner } from "./scanner.js";
 import { FileSynchronizer } from "./sync/synchronizer.js";
 import type {
   ChangeStats,
@@ -328,12 +328,7 @@ export class CodeIndexer {
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       stats.status = "failed";
-      if (error instanceof ScanError) {
-        stats.errors?.push(`File discovery failed: ${errorMessage}`);
-      } else {
-        stats.errors?.push(`Indexing failed: ${errorMessage}`);
-      }
-      this.log.error({ error, path }, "Indexing failed");
+      stats.errors?.push(`Indexing failed: ${errorMessage}`);
       stats.durationMs = Date.now() - startTime;
       return stats;
     }

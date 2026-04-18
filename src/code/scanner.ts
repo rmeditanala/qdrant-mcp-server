@@ -7,17 +7,6 @@ import { extname, join, relative, resolve } from "node:path";
 import ignore, { type Ignore } from "ignore";
 import type { ScannerConfig } from "./types.js";
 
-export class ScanError extends Error {
-  constructor(
-    message: string,
-    public readonly path: string,
-    public override readonly cause?: unknown
-  ) {
-    super(message);
-    this.name = "ScanError";
-  }
-}
-
 export class FileScanner {
   private ig: Ignore = ignore();
   private supportedExts: Set<string>;
@@ -61,16 +50,8 @@ export class FileScanner {
   async scanDirectory(rootPath: string): Promise<string[]> {
     const absoluteRoot = resolve(rootPath);
     const files: string[] = [];
-    const visitedRealPaths = new Set<string>();
 
-    // Verify the root path is accessible before walking
-    try {
-      await fs.access(absoluteRoot);
-    } catch (error) {
-      throw new ScanError(`Cannot access directory: ${absoluteRoot}`, absoluteRoot, error);
-    }
-
-    await this.walkDirectory(absoluteRoot, absoluteRoot, files, visitedRealPaths);
+    await this.walkDirectory(absoluteRoot, absoluteRoot, files);
 
     return files;
   }
@@ -96,73 +77,36 @@ export class FileScanner {
   private async walkDirectory(
     currentPath: string,
     rootPath: string,
-    files: string[],
-    visitedRealPaths: Set<string>
+    files: string[]
   ): Promise<void> {
-    const entries = await fs.readdir(currentPath, { withFileTypes: true });
+    try {
+      const entries = await fs.readdir(currentPath, { withFileTypes: true });
 
-    for (const entry of entries) {
-      const fullPath = join(currentPath, entry.name);
-      const relativePath = relative(rootPath, fullPath);
+      for (const entry of entries) {
+        const fullPath = join(currentPath, entry.name);
+        const relativePath = relative(rootPath, fullPath);
 
-      // Skip ignored paths
-      if (this.ig.ignores(relativePath)) {
-        continue;
-      }
-
-      if (entry.isSymbolicLink()) {
-        // Resolve the symlink to its real path to detect cycles
-        let realPath: string;
-        try {
-          realPath = await fs.realpath(fullPath);
-        } catch {
-          // Broken symlink — skip
+        // Skip ignored paths
+        if (this.ig.ignores(relativePath)) {
           continue;
         }
 
-        // Skip if we've already visited this real path (cycle prevention)
-        if (visitedRealPaths.has(realPath)) {
+        // Handle symbolic links safely to avoid infinite loops
+        if (entry.isSymbolicLink()) {
           continue;
         }
 
-        // Check what the symlink points to
-        let stat: Awaited<ReturnType<typeof fs.stat>>;
-        try {
-          stat = await fs.stat(fullPath);
-        } catch {
-          continue;
-        }
-
-        if (stat.isDirectory()) {
-          visitedRealPaths.add(realPath);
-          try {
-            await this.walkDirectory(realPath, rootPath, files, visitedRealPaths);
-          } catch {
-            // Skip unreadable symlinked directories
-          }
-        } else if (stat.isFile()) {
+        if (entry.isDirectory()) {
+          await this.walkDirectory(fullPath, rootPath, files);
+        } else if (entry.isFile()) {
           const ext = extname(entry.name);
           if (this.supportedExts.has(ext)) {
             files.push(fullPath);
           }
         }
-      } else if (entry.isDirectory()) {
-        try {
-          const realPath = await fs.realpath(fullPath);
-          if (visitedRealPaths.has(realPath)) {
-            continue;
-          }
-          visitedRealPaths.add(realPath);
-          await this.walkDirectory(fullPath, rootPath, files, visitedRealPaths);
-        } catch {
-          // Skip directories that can't be read (permission errors, etc.)
-        }
-      } else if (entry.isFile()) {
-        const ext = extname(entry.name);
-        if (this.supportedExts.has(ext)) {
-          files.push(fullPath);
-        }
       }
+    } catch (_error) {
+      // Skip directories that can't be read (permission errors, etc.)
     }
   }
 
