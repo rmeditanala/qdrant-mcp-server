@@ -198,9 +198,10 @@ describe("FileScanner", () => {
       expect(Array.isArray(files)).toBe(true);
     });
 
-    it("should gracefully handle non-existent directories", async () => {
-      const files = await scanner.scanDirectory("/nonexistent/directory/path");
-      expect(files).toEqual([]);
+    it("should throw ScanError for non-existent directories", async () => {
+      await expect(
+        scanner.scanDirectory("/nonexistent/directory/path")
+      ).rejects.toThrow("Cannot access directory");
     });
   });
 });
